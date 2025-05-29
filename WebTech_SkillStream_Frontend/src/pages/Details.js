@@ -29,8 +29,8 @@ export const Details = () => {
   useEffect(() => {
     if (message || error) {
       setTimeout(() => {
-        dispatch(apis.resetAll());
-        window.location.href = "/courses";
+        // dispatch(apis.resetAll()); // Removed for now
+        // window.location.href = "/courses"; // Removed for now
       }, 2000);
     }
   }, [message, error, dispatch]);
