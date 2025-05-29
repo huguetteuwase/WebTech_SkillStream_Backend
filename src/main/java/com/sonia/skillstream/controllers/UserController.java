@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Random;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final MailService mailService;
+    private final PasswordEncoder passwordEncoder;
 
     // Store email -> verification code (for initial login verification)
     private final Map<String, String> verificationCodes = new HashMap<>();
@@ -34,9 +36,10 @@ public class UserController {
     private final Map<String, String> passwordResetCodes = new HashMap<>();
 
 
-    public UserController(UserRepository userRepository, MailService mailService) {
+    public UserController(UserRepository userRepository, MailService mailService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.mailService = mailService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping
@@ -60,9 +63,9 @@ public class UserController {
         User user = new User();
         user.setName(request.name);
         user.setEmail(request.email);
-        user.setPassword(request.password);
+        user.setPassword(passwordEncoder.encode(request.password()));
         user.setAge(request.age);
-        user.setRole(request.role);
+        user.setRole("STUDENT"); // Default role for new users
         user.setVerified(false); // <--- IMPORTANT: New users are not verified by default
         userRepository.save(user);
         return ResponseEntity.ok("User created. Please login to verify your account.");
@@ -71,31 +74,33 @@ public class UserController {
     // Login + send verification code or direct login if verified
     public record UserLoginRequest(String email, String password) {}
 
+    @Deprecated // This login endpoint is being replaced by /api/auth/login in AuthController
     @PostMapping("login")
     public ResponseEntity<Object> login(@RequestBody UserLoginRequest request){
-        User user = userRepository.findByEmail(request.email); // Assume findByEmail returns null if not found
+        // User user = userRepository.findByEmail(request.email); // Assume findByEmail returns null if not found
 
-        if (user == null){ // Check if user exists
-            return ResponseEntity.badRequest().body("User doesn't exist.");
-        }
-        if (!user.getPassword().equals(request.password)) {
-            return ResponseEntity.badRequest().body("Password doesn't match.");
-        }
+        // if (user == null){ // Check if user exists
+        //     return ResponseEntity.badRequest().body("User doesn't exist.");
+        // }
+        // if (!user.getPassword().equals(request.password)) { // This check is now done by Spring Security
+        //     return ResponseEntity.badRequest().body("Password doesn't match.");
+        // }
 
-        // <--- IMPORTANT NEW LOGIC HERE:
-        // If user is already verified, return the user object directly
-        if (user.isVerified()) {
-            return ResponseEntity.ok(user); // Frontend will store user and navigate to dashboard
-        } else {
-            // User is not verified, send verification code
-            String code = String.valueOf(100000 + new Random().nextInt(900000));
-            verificationCodes.put(user.getEmail(), code); // Store the code
+        // // <--- IMPORTANT NEW LOGIC HERE:
+        // // If user is already verified, return the user object directly
+        // if (user.isVerified()) {
+        //     return ResponseEntity.ok(user); // Frontend will store user and navigate to dashboard
+        // } else {
+        //     // User is not verified, send verification code
+        //     String code = String.valueOf(100000 + new Random().nextInt(900000));
+        //     verificationCodes.put(user.getEmail(), code); // Store the code
             
-            mailService.sendEmail(user.getEmail(), "Your SkillStream Verification Code", 
-                "Hi " + user.getName() + ",\n\nYour SkillStream verification code is: " + code + "\n\nThank you!");
+        //     mailService.sendEmail(user.getEmail(), "Your SkillStream Verification Code", 
+        //         "Hi " + user.getName() + ",\n\nYour SkillStream verification code is: " + code + "\n\nThank you!");
             
-            return ResponseEntity.ok("Verification code sent to your email."); // Frontend will show modal
-        }
+        //     return ResponseEntity.ok("Verification code sent to your email."); // Frontend will show modal
+        // }
+        return ResponseEntity.status(HttpStatus.GONE).body("This endpoint is deprecated. Use /api/auth/login instead.");
     }
 
     // Verify code
@@ -182,7 +187,7 @@ public class UserController {
         }
         
         // Update password
-        user.setPassword(request.newPassword());
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
         
         // Remove the used OTP
