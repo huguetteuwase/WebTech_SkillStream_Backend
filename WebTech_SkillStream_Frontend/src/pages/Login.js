@@ -15,6 +15,7 @@ export const Login = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [emailForVerification, setEmailForVerification] = useState("");
+  const [pendingVerificationUser, setPendingVerificationUser] = useState(null); // Added state variable
   const [registerUser, setUser] = useState({
     name: "",
     email: "",
@@ -236,6 +237,18 @@ export const Login = () => {
           setEmailForVerification(loginData.email);
           setShowVerificationModal(true);
           setLoading(false);
+          // Added logic for pendingVerificationUser
+          // user is from: const { loading: loginLoading = false, error: loginError = null, user = null, ... } = loginState;
+          // This 'user' should be the one just returned by the apis.login() call and updated in Redux state.
+          if (user && typeof user === 'object' && user.role) { // Check if user object with role exists
+            setPendingVerificationUser(user);
+            console.log("Stored pending user for verification:", user);
+          } else {
+            // This case is less ideal, means the login API didn't return full user data before verification trigger
+            console.log("No full user object from loginState.user to store pending verification.");
+            // Potentially store loginData.email and anticipate the verifyCode API must return full details
+            setPendingVerificationUser({ email: loginData.email }); 
+          }
         }
         // Direct login success
         else if (payload && typeof payload === 'object' && (payload.id || payload.email)) {
@@ -288,13 +301,25 @@ export const Login = () => {
 
         // User object returned
         if (payload && typeof payload === 'object' && (payload.id || payload.email)) {
-          console.log("Verification returned user object");
-          localStorage.setItem("user", JSON.stringify(payload));
+          console.log("Verification returned user object", payload);
+          // NEW LOGIC: Check if role is present, if not, try to merge with pendingVerificationUser
+          let userToStore = payload;
+          if (!payload.role && pendingVerificationUser && pendingVerificationUser.role) {
+            userToStore = { ...pendingVerificationUser, ...payload, verified: true }; // Ensure verified status and other pending details are merged
+            console.log("Merged with pendingVerificationUser to include role:", userToStore);
+          } else if (!payload.role && !pendingVerificationUser?.role) {
+             // If no role from payload and no role from pending, create a default student role or similar
+             userToStore = { ...payload, role: 'student', verified: true }; // Default role
+             console.warn("User role not found in verification payload or pending data. Defaulting to student.", userToStore);
+          }
+          
+          localStorage.setItem("user", JSON.stringify(userToStore));
           setShowVerificationModal(false);
           setLoading(false);
           setVerificationCode("");
           dispatch(apis.resetAll());
-          navigateByRole(payload); // Use role-based navigation
+          navigateByRole(userToStore); // Use role-based navigation
+          setPendingVerificationUser(null); // Clear pending user
         }
         // Success message
         else if (typeof payload === 'string' &&
@@ -336,25 +361,57 @@ export const Login = () => {
   // Effect for verification success (without explicit user object)
   useEffect(() => {
     if (verifySuccessMessage && !verifyError && !verifiedUser) {
-      console.log("Verification success message received:", verifySuccessMessage);
+      console.log("Verification success message received in useEffect:", verifySuccessMessage);
 
-      const userObj = {
-        email: emailForVerification,
-        verified: true,
-        ...(user && typeof user === 'object' ? user : {})
+      let userToStore = {
+        email: emailForVerification, // Email used for verification
+        verified: true // Mark as verified
       };
 
-      localStorage.setItem("user", JSON.stringify(userObj));
+      // Prioritize pendingVerificationUser for role and other details
+      if (pendingVerificationUser && typeof pendingVerificationUser === 'object') {
+        userToStore = { ...pendingVerificationUser, ...userToStore }; 
+        console.log("Constructed userToStore in useEffect using pendingVerificationUser:", userToStore);
+      } 
+      // Fallback: if verifyCodeState.user (verifiedUser) somehow got populated by the API with a role
+      else if (verifiedUser && typeof verifiedUser === 'object' && verifiedUser.role) {
+        userToStore = { ...verifiedUser, ...userToStore };
+        console.log("Constructed userToStore in useEffect using verifiedUser from Redux state:", userToStore);
+      }
+      // Fallback: if loginState.user (user) still has data (less reliable at this stage)
+      else if (user && typeof user === 'object' && user.role) { 
+        userToStore = { ...user, ...userToStore };
+        console.log("Constructed userToStore in useEffect using user from loginState:", userToStore);
+      }
+
+      // If no role could be found from any source, assign a default role (e.g., 'student')
+      if (!userToStore.role) {
+        userToStore.role = 'student';
+        console.warn("User role could not be determined in useEffect. Defaulting to 'student'.", userToStore);
+      }
+      
+      // Ensure token is preserved if it was part of pendingVerificationUser or other sources
+      if (pendingVerificationUser && pendingVerificationUser.token && !userToStore.token) {
+        userToStore.token = pendingVerificationUser.token;
+      } else if (verifiedUser && verifiedUser.token && !userToStore.token) {
+         userToStore.token = verifiedUser.token;
+      } else if (user && user.token && !userToStore.token) {
+         userToStore.token = user.token;
+      }
+
+
+      localStorage.setItem("user", JSON.stringify(userToStore));
       setShowVerificationModal(false);
       setLoading(false);
       setVerificationCode("");
+      setPendingVerificationUser(null); // Clear pending user
 
       setTimeout(() => {
         dispatch(apis.resetAll());
-        navigateByRole(userObj); // Use role-based navigation
+        navigateByRole(userToStore); // Use role-based navigation
       }, 500);
     }
-  }, [verifySuccessMessage, verifyError, verifiedUser, emailForVerification, user, navigate, dispatch]);
+  }, [verifySuccessMessage, verifyError, verifiedUser, emailForVerification, user, navigate, dispatch, pendingVerificationUser]); // Added pendingVerificationUser to dependency array
 
   // Effect to auto-clear general errors (login, register, verify code)
   useEffect(() => {
