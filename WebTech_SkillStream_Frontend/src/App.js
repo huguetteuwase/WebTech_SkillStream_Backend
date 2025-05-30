@@ -37,9 +37,9 @@ function App() {
 
           <Routes>
             {/* Public Routes - Accessible to everyone */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/courses" element={<Courses />} />
+            <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+            <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+            <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
             <Route path="/courses/:id" element={<Details />} />
             <Route path="/login" element={<Login />} />
 
@@ -53,7 +53,7 @@ function App() {
             <Route
               path="/dashboard/*" // Use /* to match all nested paths under /dashboard
               element={
-                <ProtectedRoute>
+                <ProtectedRoute adminOnly={true}>
                   <Dashboard />
                 </ProtectedRoute>
               }

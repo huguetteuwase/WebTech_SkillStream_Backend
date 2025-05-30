@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { apis } from "../store/apis";
 import { Link } from "react-router-dom";
+import Navbar from '../components/Navbar'; // Added Navbar import
 
 export const Courses = () => {
   const dispatch = useDispatch();
@@ -71,20 +72,7 @@ export const Courses = () => {
       </div>
 
       {/* Navigation */}
-      <div className="container-fluid p-0">
-        <nav className="navbar navbar-expand-lg bg-white navbar-light py-3 py-lg-0 px-lg-5">
-          <Link to="/" className="navbar-brand ml-lg-3">
-            <h1 className="m-0 text-uppercase text-primary">
-              <i className="fa fa-book-reader mr-3"></i>SkillStream
-            </h1>
-          </Link>
-          <div className="navbar-nav mx-auto py-0">
-            <Link to="/" className="nav-item nav-link">Home</Link>
-            <Link to="/about" className="nav-item nav-link">About</Link>
-            <Link to="/courses" className="nav-item nav-link active">Courses</Link>
-          </div>
-        </nav>
-      </div>
+      <Navbar /> {/* Replaced old navbar with Navbar component */}
 
       {/* Search Section */}
       <div className="jumbotron jumbotron-fluid bg-primary text-white text-center py-5" style={{ marginBottom: "50px" }}>

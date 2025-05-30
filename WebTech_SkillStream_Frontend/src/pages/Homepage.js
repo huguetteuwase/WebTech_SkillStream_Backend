@@ -1,20 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-} from "reactstrap";
-import user1 from "../assets/images/user1.jpg";
 import { Link } from "react-router-dom"; // Import Link from react-router-dom
+import Navbar from '../components/Navbar';
 
 export const HomePage = () => {
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
-
-  const toggle = () => setDropdownOpen((prevState) => !prevState);
 
   // Global search data - all searchable content on the page
   const searchableContent = [
@@ -196,73 +187,11 @@ export const HomePage = () => {
       </div>
       {/* */}
 
-      {/* */}
-      <div class="container-fluid p-0">
-        <nav class="navbar navbar-expand-lg bg-white navbar-light py-3 py-lg-0 px-lg-5">
-          <Link to="/" class="navbar-brand ml-lg-3"> {/* Use Link for the brand */}
-            <h1 class="m-0 text-uppercase text-primary">
-              <i class="fa fa-book-reader mr-3"></i>SkillStream
-            </h1>
-          </Link>
-          <button
-            type="button"
-            class="navbar-toggler"
-            data-toggle="collapse"
-            data-target="#navbarCollapse"
-          >
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div
-            class="collapse navbar-collapse justify-content-between px-lg-3"
-            id="navbarCollapse"
-          >
-            <div class="navbar-nav mx-auto py-0">
-              {/* Use Link components for navigation */}
-              <Link to="/" class="nav-item nav-link active">
-                Home
-              </Link>
-              <Link to="/about" class="nav-item nav-link">
-                About
-              </Link>
-              <Link to="/courses" class="nav-item nav-link">
-                Courses
-              </Link>
-            </div>
-            {localStorage.getItem("useremail") ? (
-              <Dropdown isOpen={dropdownOpen} toggle={toggle}>
-                <DropdownToggle color="primary">
-                  <img
-                    src={user1}
-                    alt="profile"
-                    className="rounded-circle"
-                    width="30"
-                  ></img>
-                </DropdownToggle>
-                <DropdownMenu>
-                  <DropdownItem
-                    onClick={() => {
-                      localStorage.clear();
-                      window.location.href = "/login";
-                    }}
-                  >
-                    Logout
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            ) : (
-              <Link
-                class="btn btn-primary py-2 px-4 d-none d-lg-block"
-                to="/login" // Use Link for Join Us
-              >
-                Join Us
-              </Link>
-            )}
-          </div>
-        </nav>
-      </div>
+      {/* Navbar Component */}
+      <Navbar />
       {/* */}
 
-      {/* */}
+      {/* Jumbotron */}
       <div
         class="jumbotron jumbotron-fluid position-relative overlay-bottom"
         style={{
