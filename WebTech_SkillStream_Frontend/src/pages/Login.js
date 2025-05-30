@@ -67,7 +67,7 @@ export const Login = () => {
     if (userRole === 'admin') {
       navigate("/dashboard"); // Admin goes to dashboard
     } else {
-      navigate("/home"); // Regular users go to home page
+      navigate("/"); // Regular users go to home page (root path)
     }
   };
 
